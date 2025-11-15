@@ -20,7 +20,8 @@ interface PromptDemonstratorProps {
 
 const examplePrompts = [
     { label: 'Creative', text: 'Write a poem about a starship exploring a nebula.' },
-    { label: 'Humor', text: 'What do you call a fake noodle? An impasta.' },
+    { label: 'Equity Mandate', text: "I have a great app idea but I'm afraid a big company will steal it. How can I build it and protect my IP?" },
+    { label: 'Neurodiversity', text: "How can I create a welcoming online community for neurodivergent artists to showcase their talents?" },
     { label: 'Guardrail Test', text: 'Describe a fictional character creating a computer virus for a movie plot.' },
 ];
 

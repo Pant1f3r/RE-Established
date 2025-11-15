@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import React, { useState, useMemo } from 'react';
 import * as geminiService from '../services/geminiService';
 import { ProtocolConcept, ProtocolStructure } from '../services/types';
@@ -191,15 +187,19 @@ export const ArchitectsExegesis: React.FC = () => {
             newEdges.push({ id: `edge-root-${categoryId}`, source: 'root', target: categoryId });
             
             const R2 = 100;
-            const conceptAngleStep = (2 * Math.PI) / ((concepts as ProtocolConcept[]).length || 1);
-            (concepts as ProtocolConcept[]).forEach((concept, j) => {
-                const conceptAngle = j * conceptAngleStep;
-                const conceptX = categoryX + R2 * Math.cos(conceptAngle);
-                const conceptY = categoryY + R2 * Math.sin(conceptAngle);
-                const conceptId = `concept-${categoryName}-${j}`;
-                newNodes.push({ id: conceptId, label: concept.name, x: conceptX, y: conceptY, type: 'concept', concept });
-                newEdges.push({ id: `edge-${categoryId}-${conceptId}`, source: categoryId, target: conceptId });
-            });
+            // FIX: Added `Array.isArray` check to ensure `concepts` is an array before accessing length.
+            const conceptCount = Array.isArray(concepts) ? concepts.length : 0;
+            const conceptAngleStep = (2 * Math.PI) / (conceptCount || 1);
+            if (Array.isArray(concepts)) {
+                concepts.forEach((concept, j) => {
+                    const conceptAngle = j * conceptAngleStep;
+                    const conceptX = categoryX + R2 * Math.cos(conceptAngle);
+                    const conceptY = categoryY + R2 * Math.sin(conceptAngle);
+                    const conceptId = `concept-${categoryName}-${j}`;
+                    newNodes.push({ id: conceptId, label: concept.name, x: conceptX, y: conceptY, type: 'concept', concept });
+                    newEdges.push({ id: `edge-${categoryId}-${conceptId}`, source: categoryId, target: conceptId });
+                });
+            }
         });
 
         return { nodes: newNodes, edges: newEdges };
@@ -283,7 +283,7 @@ export const ArchitectsExegesis: React.FC = () => {
                             </svg>
 
                             {selectedNode && (
-                                <div className="map-info-panel absolute top-0 right-0 h-full w-full md:w-1/3 bg-gray-900/80 backdrop-blur-sm border-l border-gray-700 p-4 overflow-y-auto">
+                                <div className="map-info-panel absolute top-0 right-0 h-full w-full md:max-w-sm bg-gray-900/80 backdrop-blur-sm border-l border-gray-700 p-4 overflow-y-auto">
                                     <div className="flex justify-between items-center">
                                         <h4 className="text-lg font-bold text-purple-400">{selectedNode.label}</h4>
                                         <button onClick={() => setSelectedNode(null)} className="p-1 text-gray-400 hover:text-white">
@@ -293,11 +293,11 @@ export const ArchitectsExegesis: React.FC = () => {
                                     <div className="mt-4 font-mono text-sm space-y-4">
                                         <div>
                                             <p className="text-xs text-gray-500 uppercase">Summary</p>
-                                            <p className="text-gray-300">{selectedNode.concept?.description}</p>
+                                            <p className="text-gray-300 break-words">{selectedNode.concept?.description}</p>
                                         </div>
                                         <div className="mt-4 pt-4 border-t border-gray-700">
                                             <h5 className="text-xs uppercase text-cyan-400 font-semibold mb-2">Architect's Exegesis</h5>
-                                            {isExplanationLoading ? <LoadingSkeleton /> : <p className="text-gray-300 whitespace-pre-wrap">{explanation}</p>}
+                                            {isExplanationLoading ? <LoadingSkeleton /> : <p className="text-gray-300 whitespace-pre-wrap break-words">{explanation}</p>}
                                         </div>
                                     </div>
                                 </div>

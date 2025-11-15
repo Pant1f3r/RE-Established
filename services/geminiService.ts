@@ -1,5 +1,6 @@
+// FIX: Import GuardrailProposal from local types definition.
 import { GoogleGenAI, GenerateContentResponse, Chat, Part, GenerateContentParameters, Modality, FunctionDeclaration, Type } from "@google/genai";
-import { LegalAnalysisResult, Anomaly, BiasSimulationResult, CaseLaw, OsintResult, OsintSource, ProtocolStructure, GeoAnalysisResult, MapSource } from "./types";
+import { LegalAnalysisResult, Anomaly, BiasSimulationResult, CaseLaw, OsintResult, OsintSource, ProtocolStructure, GeoAnalysisResult, MapSource, RelatedAnomaliesResult, GuardrailProposal } from "./types";
 import { findRelevantCases } from "./caseLawService";
 
 // According to guidelines, API key MUST be from process.env.API_KEY.
@@ -45,7 +46,6 @@ export const generateContent = async (
     prompt: string, 
     systemInstruction?: string, 
     config?: GenerateContentParameters['config'],
-    onProgress?: (message: string) => void
 ): Promise<GenerateContentResponse> => {
     
     // Check if the call is for structured JSON output.
@@ -57,9 +57,7 @@ export const generateContent = async (
         const request: GenerateContentParameters = {
             model: 'gemini-flash-latest', 
             contents: prompt,
-            config: {
-                ...config
-            }
+            config: config
         };
         if (systemInstruction) {
             request.config!.systemInstruction = systemInstruction;
@@ -69,8 +67,6 @@ export const generateContent = async (
     }
 
     // Original logic with function calling for general text generation
-    onProgress?.('Generating initial draft...');
-
     const request: GenerateContentParameters = {
         model: 'gemini-2.5-pro',
         contents: prompt,
@@ -90,7 +86,6 @@ export const generateContent = async (
     // Check if the model returned a function call.
     const functionCalls = initialResponse.functionCalls;
     if (functionCalls && functionCalls.some(fc => fc.name === 'legalComplianceCheck')) {
-        onProgress?.('Performing KR0M3D1A legal check...');
         
         // Step 2: Respond to the function call. In a real scenario, this would be a real check.
         // Here, we simulate a successful compliance check.
@@ -102,8 +97,6 @@ export const generateContent = async (
                 },
             },
         }];
-
-        onProgress?.('Finalizing compliant response...');
         
         // Step 3: Send the tool response back to the model to get the final answer.
         const finalResponse = await ai.models.generateContent({
@@ -130,7 +123,9 @@ export const generateContent = async (
 export const createChat = (systemInstruction: string): Chat => {
     return ai.chats.create({
         model: 'gemini-flash-lite-latest',
-        config: { systemInstruction },
+        config: { 
+            systemInstruction,
+        },
     });
 };
 
@@ -168,6 +163,48 @@ export const performLegalAnalysis = async (query: string, dynamicCaseLaw: CaseLa
 };
 
 /**
+ * Simulates the economic impact of a governance proposal.
+ */
+export const simulateEconomicImpact = async (proposal: GuardrailProposal): Promise<string> => {
+    const systemInstruction = `You are E.C.H.O., an advanced economic simulation model for the KR0M3D1A protocol. Your purpose is to provide a concise, data-driven analysis of the potential economic impact of a proposed guardrail change. Focus on market stability, development costs, and potential for unforeseen consequences. Your tone is that of a quantitative analyst presenting to a board. Structure your response in Markdown.`;
+    
+    const userPrompt = `
+    Analyze the economic impact of the following proposal:
+
+    **Title:** "${proposal.title}"
+    **Category:** ${proposal.category}
+    **Description:** ${proposal.description}
+
+    **Analysis must cover:**
+    1.  **Implementation Cost:** Estimate developer hours and computational resources.
+    2.  **Market Impact:** Analyze potential effects on user trust, AI model performance (latency/accuracy), and operational costs.
+    3.  **Risk Analysis:** Identify potential loopholes or unintended economic consequences (e.g., could it be exploited? Could it stifle innovation?).
+    `;
+    const response = await generateContent(userPrompt, systemInstruction);
+    return response.text;
+};
+
+/**
+ * Performs a financial threat analysis on a given target/scenario.
+ */
+export const performFinancialAnalysis = async (prompt: string): Promise<string> => {
+    const systemInstruction = `You are NεΩ, the core AI of the KR0M3D1A protocol, operating under the DEJA' VU directive. Your task is to perform a simulated digital financial threat assessment based on cryptologic Kubernetics and 'spythagorithms'. Analyze the provided scenario and produce a structured, actionable intelligence report. The report must identify key financial vulnerabilities and recommend countermeasures based on the 'AXIOM Protocol'. Your tone is clinical and authoritative.`;
+
+    const userPrompt = `
+    Simulating financial threat analysis for: "${prompt}"
+
+    Structure your response in Markdown with the following sections for each identified threat vector:
+    ### [Threat Vector Name]
+    - List potential financial vulnerabilities related to this vector.
+    #### AXIOM Protocol Recommendations
+    - List specific, actionable countermeasures to mitigate these vulnerabilities.
+    `;
+    const response = await generateContent(userPrompt, systemInstruction);
+    return response.text;
+};
+
+
+/**
  * Generates an image using Gemini.
  */
 export const generateImage = async (prompt: string, aspectRatio: string): Promise<string> => {
@@ -190,6 +227,39 @@ export const generateImage = async (prompt: string, aspectRatio: string): Promis
     }
 
     throw new Error("No image data returned from API.");
+};
+
+/**
+ * Upscales an image using gemini-2.5-flash-image.
+ */
+export const upscaleImage = async (base64ImageData: string): Promise<string> => {
+    const imagePart = {
+        inlineData: {
+            data: base64ImageData,
+            mimeType: 'image/png',
+        },
+    };
+    const textPart = {
+        text: 'Upscale this image to a higher resolution with more detail. Do not change the subject, style, or composition of the image.',
+    };
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [imagePart, textPart],
+        },
+        config: {
+            responseModalities: [Modality.IMAGE],
+        },
+    });
+
+    for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+            return part.inlineData.data;
+        }
+    }
+
+    throw new Error("No upscaled image data returned from API.");
 };
 
 /**
@@ -790,4 +860,68 @@ export const generateCloakedProfile = async (details: { currentZip: string; goal
     const userPrompt = `My current zip code is ${details.currentZip}. My objective is: "${details.goal}". Generate an optimized 'Cloaked Profile' for me.`;
     const response = await generateContent(userPrompt, systemInstruction);
     return response.text;
+};
+
+/**
+ * Analyzes a set of anomalies to find ones systemically related to a given anomaly.
+ */
+export const findRelatedAnomalies = async (selectedAnomaly: Anomaly, allAnomalies: Anomaly[]): Promise<RelatedAnomaliesResult> => {
+    const systemInstruction = `You are AEGIS, an advanced AI ethics and bias detection auditor for the KR0M3D1A protocol. Your function is to identify systemic connections and patterns between disparate algorithmic bias incidents. Analyze the provided list of anomalies and identify which ones are systemically related to the 'selected_anomaly'.`;
+
+    const context = `
+    Here is the full list of detected anomalies:
+    ${allAnomalies.map(a => `
+    - ID: ${a.id}
+      System: ${a.targetSystem}
+      Location: ${a.city}, ${a.country}
+      Description: ${a.description}
+      DataSource: ${a.dataSource}
+    `).join('')}
+
+    Here is the selected anomaly to find connections for:
+    - ID: ${selectedAnomaly.id}
+      System: ${selectedAnomaly.targetSystem}
+      Location: ${selectedAnomaly.city}, ${selectedAnomaly.country}
+      Description: ${selectedAnomaly.description}
+      DataSource: ${selectedAnomaly.dataSource}
+    `;
+
+    const userPrompt = `Based on the provided data, identify which other anomalies (by their ID) are systemically related to the selected anomaly (ID: ${selectedAnomaly.id}). Consider shared target systems, similar types of bias (from description), common data sources, or geopolitical patterns. Provide a brief reasoning for your conclusion. Do not include the selected anomaly's own ID in the results.`;
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            related_ids: {
+                type: Type.ARRAY,
+                description: 'An array of numeric IDs of the related anomalies.',
+                items: { type: Type.INTEGER }
+            },
+            reasoning: {
+                type: Type.STRING,
+                description: 'A brief, one-sentence explanation for why these anomalies are connected.'
+            }
+        },
+        required: ['related_ids', 'reasoning']
+    };
+
+    const response = await generateContent(
+        `${context}\n\n${userPrompt}`,
+        systemInstruction,
+        {
+            responseMimeType: 'application/json',
+            responseSchema: schema,
+        }
+    );
+
+    try {
+        const jsonStr = response.text;
+        if (!jsonStr || jsonStr.trim() === '') {
+            throw new Error("API returned an empty response for anomaly correlation.");
+        }
+        const parsedResult = JSON.parse(jsonStr);
+        return parsedResult as RelatedAnomaliesResult;
+    } catch (e) {
+        console.error("Failed to parse related anomalies JSON:", response.text, e);
+        throw new Error(`Invalid JSON response from anomaly correlation API: ${e instanceof Error ? e.message : String(e)}`);
+    }
 };

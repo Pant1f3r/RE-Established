@@ -1,8 +1,10 @@
 import React from 'react';
-import { GuardrailProposal } from '../services/types';
+import { GuardrailProposal, Priority } from '../services/types';
 import { ArrowUpIcon } from './icons/ArrowUpIcon';
 import { ArrowDownIcon } from './icons/ArrowDownIcon';
 import { ScaleIcon } from './icons/ScaleIcon';
+import { ClockIcon } from './icons/ClockIcon';
+import { FlagIcon } from './icons/FlagIcon';
 
 interface ProposalCardProps {
   proposal: GuardrailProposal;
@@ -14,6 +16,22 @@ const roleStyles: { [key: string]: string } = {
   'W3C Member': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30',
   'Community Contributor': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-500/20 dark:text-green-300 dark:border-green-500/30',
   'AI Safety Researcher': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30',
+};
+
+const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) => {
+    const styles = {
+        High: { text: 'text-red-400', bg: 'bg-red-900/30', border: 'border-red-500/50' },
+        Medium: { text: 'text-yellow-400', bg: 'bg-yellow-900/30', border: 'border-yellow-500/50' },
+        Low: { text: 'text-blue-400', bg: 'bg-blue-900/30', border: 'border-blue-500/50' },
+    };
+    const style = styles[priority];
+
+    return (
+        <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${style.bg} ${style.border}`}>
+            <FlagIcon className={`w-3 h-3 ${style.text}`} />
+            <span className={`text-xs font-semibold ${style.text}`}>{priority}</span>
+        </div>
+    );
 };
 
 export const ProposalCard: React.FC<ProposalCardProps> = ({ proposal, onVote, onAnalyze }) => {
@@ -40,11 +58,20 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({ proposal, onVote, on
             <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{proposal.title}</h4>
             <span className="text-xs font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 px-2 py-1 rounded-full">{proposal.category}</span>
         </div>
-        <div className="flex items-center gap-2 mt-2 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-gray-500 dark:text-gray-400">
             <span>Submitted by {proposal.submittedBy}</span>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${roleStyles[proposal.userRole] || ''}`}>{proposal.userRole}</span>
+            {proposal.dueDate && (
+                <div className="flex items-center gap-1.5">
+                    <ClockIcon className="w-4 h-4 text-orange-400" />
+                    <span className="text-orange-400 font-semibold">
+                        Due: {new Date(proposal.dueDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
+                </div>
+            )}
+            <PriorityBadge priority={proposal.priority} />
         </div>
-        <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+        <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words">
           {proposal.description}
         </p>
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">

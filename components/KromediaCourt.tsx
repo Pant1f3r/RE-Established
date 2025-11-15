@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Anomaly, LegalCase, AnomalySeverity, Toast } from '../services/types';
+import { Anomaly, LegalCase, AnomalySeverity, Toast, AwarenessDataPoint } from '../services/types';
 import { ScaleIcon } from './icons/ScaleIcon';
 import { GavelIcon } from './icons/GavelIcon';
 import { InteractiveBiasMap } from './InteractiveBiasMap';
@@ -10,6 +9,10 @@ import { CourtMandate } from './CourtMandate';
 import { CourtIcon } from './icons/CourtIcon';
 import { BiasSimulationInterface } from './BiasSimulationInterface';
 import { ArrowPathIcon } from './icons/ArrowPathIcon';
+import { AnomalySeverityChart } from './AnomalySeverityChart';
+import { AwarenessTrendChart } from './AwarenessTrendChart';
+import { ChartBarIcon } from './icons/ChartBarIcon';
+import { PulseIcon } from './icons/PulseIcon';
 
 interface ArconomicsProps {
     onAnalyzeAnomaly: (anomaly: Anomaly) => void;
@@ -21,18 +24,23 @@ interface ArconomicsProps {
     selectedAnomaly: Anomaly | null;
     setSelectedAnomaly: (anomaly: Anomaly | null) => void;
     error: string;
-    globalAwareness: number;
+    globalAwarenessHistory: AwarenessDataPoint[];
     generatedBrief: string | null;
     courtTreasury: number;
     revaluationCounts: { [signature: string]: number };
     addToast: (message: string, type: Toast['type'], duration?: number) => void;
     evidenceCases: { signature: string; count: number }[];
+    onRevealConstellation: (anomaly: Anomaly) => void;
+    isConstellationLoading: boolean;
+    relatedAnomalyIds: number[];
+    constellationReasoning: string;
 }
 
 const AwarenessGauge: React.FC<{ percentage: number }> = ({ percentage }) => {
     const radius = 50;
     const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+    // FIX: Explicitly cast operands to `Number` to resolve a TypeScript type error where a numeric type was not being correctly inferred for an arithmetic operation.
+    const strokeDashoffset = Number(circumference) - (Number(percentage) / 100) * Number(circumference);
     return (
         <div className="relative w-36 h-36">
             <svg className="w-full h-full" viewBox="0 0 120 120">
@@ -85,7 +93,6 @@ const ReevaluationDossier: React.FC<{ counts: { [signature: string]: number }, e
     const THRESHOLD = 10000;
     const dossierEntries = Object.entries(counts)
         .filter(([signature]) => !evidenceSignatures.includes(signature))
-        // FIX: Explicitly typing the sort function parameters `a` and `b` ensures TypeScript knows `a[1]` and `b[1]` are numbers, allowing the arithmetic operation to be performed correctly.
         .sort((a: [string, number], b: [string, number]) => b[1] - a[1]);
 
     return (
@@ -134,7 +141,7 @@ const ParsedLegalBrief: React.FC<{ text: string }> = ({ text }) => {
                 return (
                     <div key={index}>
                         <h5 className="font-bold text-base text-yellow-300">{fullTitle}</h5>
-                        <p className="whitespace-pre-wrap text-gray-300 text-sm">{content}</p>
+                        <p className="whitespace-pre-wrap break-words text-gray-300 text-sm">{content}</p>
                     </div>
                 );
             })}
@@ -152,14 +159,20 @@ export const Arconomics: React.FC<ArconomicsProps> = ({
     selectedAnomaly,
     setSelectedAnomaly,
     error,
-    globalAwareness,
+    globalAwarenessHistory,
     generatedBrief,
     courtTreasury,
     revaluationCounts,
     addToast,
     evidenceCases,
+    onRevealConstellation,
+    isConstellationLoading,
+    relatedAnomalyIds,
+    constellationReasoning,
 }) => {
     
+    const currentAwareness = globalAwarenessHistory[globalAwarenessHistory.length - 1].value;
+
     return (
         <main className="mt-8 space-y-8">
             <div className="text-center">
@@ -228,12 +241,16 @@ export const Arconomics: React.FC<ArconomicsProps> = ({
                     </h3>
                     <div className="flex-grow relative">
                          <InteractiveBiasMap 
-                            globalAwareness={globalAwareness}
+                            globalAwareness={currentAwareness}
                             anomalies={anomalies}
                             onAnalyzeAnomaly={onAnalyzeAnomaly}
                             selectedAnomaly={selectedAnomaly}
                             setSelectedAnomaly={setSelectedAnomaly}
                             isLoading={isLoading}
+                            onRevealConstellation={onRevealConstellation}
+                            isConstellationLoading={isConstellationLoading}
+                            relatedAnomalyIds={relatedAnomalyIds}
+                            constellationReasoning={constellationReasoning}
                         />
                     </div>
                 </div>
@@ -251,24 +268,47 @@ export const Arconomics: React.FC<ArconomicsProps> = ({
                         </div>
                     </div>
                     <div className="flex items-center justify-center">
-                        <AwarenessGauge percentage={globalAwareness} />
+                        <AwarenessGauge percentage={currentAwareness} />
                     </div>
-                    <div className="flex-grow flex flex-col">
+                    <div className="flex-grow flex flex-col min-h-0">
                         <h3 className="text-lg font-semibold text-gray-200 mb-2 text-center">Arconomics Mandate</h3>
-                        <div className="overflow-y-auto pr-2 flex-grow">
+                        <div className="overflow-y-auto pr-2 flex-grow min-h-0">
                             <CourtMandate />
                         </div>
                     </div>
                 </div>
-
             </div>
             
+            {/* New Intelligence Dashboard Section */}
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 animate-fade-in-right">
+                <h3 className="text-xl font-bold text-gray-100 mb-4 text-glow-main-title">Intelligence Dashboard</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                        <h4 className="font-semibold text-gray-300 mb-3 flex items-center gap-2"><ChartBarIcon className="w-5 h-5 text-purple-400"/>Anomaly Severity Distribution</h4>
+                        <div className="h-64">
+                            <AnomalySeverityChart anomalies={anomalies} />
+                        </div>
+                    </div>
+                    <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                         <h4 className="font-semibold text-gray-300 mb-3 flex items-center gap-2"><PulseIcon className="w-5 h-5 text-cyan-400"/>Global Awareness Trend</h4>
+                        <div className="h-64">
+                            <AwarenessTrendChart history={globalAwarenessHistory} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {selectedAnomaly && (
                 <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 animate-fade-in-right">
                     <h3 className="text-xl font-semibold text-gray-100 mb-4">Case File: {selectedAnomaly.signature}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Analysis & Brief */}
                         <div className="space-y-4">
+                            <div className="bg-gray-800/50 p-3 rounded-md border border-gray-700">
+                                <h5 className="text-xs uppercase text-yellow-400 font-semibold flex items-center gap-2"><GavelIcon className="w-4 h-4"/>Recommended Legal Action</h5>
+                                <p className="text-sm text-gray-300 mt-1 whitespace-pre-wrap">{selectedAnomaly.legalAction}</p>
+                            </div>
+
                             <div className="bg-gray-800/50 p-3 rounded-md border border-gray-700">
                                 <h5 className="text-xs uppercase text-gray-400 font-semibold">Impact Analysis</h5>
                                 {isLoading && !selectedAnomaly.analysis ? (

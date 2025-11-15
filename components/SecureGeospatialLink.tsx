@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ShieldCheckmarkIcon } from './icons/ShieldCheckmarkIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
@@ -70,7 +71,7 @@ const ConnectionStatus: React.FC = () => {
 };
 
 const InfoPanel: React.FC<{ analysis: GeoAnalysisResult, target: string, onClose: () => void }> = ({ analysis, target, onClose }) => (
-    <div className="map-info-panel absolute top-0 right-0 h-full w-full md:w-1/3 bg-gray-900/80 backdrop-blur-sm border-l border-gray-700 p-4 overflow-y-auto">
+    <div className="map-info-panel absolute top-0 right-0 h-full w-full md:max-w-sm bg-gray-900/80 backdrop-blur-sm border-l border-gray-700 p-4 overflow-y-auto">
         <div className="flex justify-between items-center">
             <h4 className="text-lg font-bold text-cyan-400">Tactical Overview: {target}</h4>
             <button onClick={onClose} className="p-1 text-gray-400 hover:text-white">
@@ -78,7 +79,7 @@ const InfoPanel: React.FC<{ analysis: GeoAnalysisResult, target: string, onClose
             </button>
         </div>
         <div className="mt-4 font-mono text-sm space-y-4">
-            <div className="whitespace-pre-wrap text-gray-300 bg-black/30 p-3 rounded-md">{analysis.analysis}</div>
+            <div className="whitespace-pre-wrap break-words text-gray-300 bg-black/30 p-3 rounded-md">{analysis.analysis}</div>
             {analysis.sources.length > 0 && (
                 <div className="pt-4 border-t border-gray-700">
                     <h5 className="font-semibold text-gray-200 mb-2">Grounding Sources (Google Maps):</h5>
@@ -194,7 +195,7 @@ export const SecureGeospatialLink: React.FC<SecureGeospatialLinkProps> = ({ onTr
                         )}
 
                          {error && (
-                            <div className="map-info-panel absolute top-0 right-0 h-full w-full md:w-1/3 bg-gray-900/80 backdrop-blur-sm border-l border-red-700 p-4">
+                            <div className="map-info-panel absolute top-0 right-0 h-full w-full md:max-w-sm bg-gray-900/80 backdrop-blur-sm border-l border-red-700 p-4">
                                <h4 className="text-lg font-bold text-red-400">Analysis Failed</h4>
                                <p className="text-red-300 mt-2">{error}</p>
                                <button onClick={handleClosePanel} className="mt-4 px-4 py-2 bg-red-600 text-white rounded">Close</button>

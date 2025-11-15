@@ -3,11 +3,16 @@ import { WorldMap } from './icons/WorldMap';
 import { GavelIcon } from './icons/GavelIcon';
 import { XCircleIcon } from './icons/XCircleIcon';
 import { Anomaly, AnomalySeverity } from '../services/types';
+import { ShareIcon } from './icons/ShareIcon';
+import { BeakerIcon } from './icons/BeakerIcon';
 
 interface InfoPanelProps {
     detection: Anomaly;
     onClose: () => void;
     isLoading: boolean;
+    onRevealConstellation: (anomaly: Anomaly) => void;
+    isConstellationLoading: boolean;
+    onAnalyzeAnomaly: (anomaly: Anomaly) => void;
 }
 
 const SeverityBadge: React.FC<{ severity?: AnomalySeverity }> = ({ severity }) => {
@@ -35,8 +40,8 @@ const InfoPanelAnalysisSkeleton: React.FC = () => (
     </div>
 );
 
-const InfoPanel: React.FC<InfoPanelProps> = ({ detection, onClose, isLoading }) => (
-    <div className="map-info-panel absolute top-0 right-0 h-full w-full md:w-1/3 bg-gray-900/80 backdrop-blur-sm border-l border-gray-700 p-4 overflow-y-auto">
+const InfoPanel: React.FC<InfoPanelProps> = ({ detection, onClose, isLoading, onRevealConstellation, isConstellationLoading, onAnalyzeAnomaly }) => (
+    <div className="map-info-panel absolute top-0 right-0 h-full w-full md:max-w-sm bg-gray-900/80 backdrop-blur-sm border-l border-gray-700 p-4 overflow-y-auto">
         <div className="flex justify-between items-center">
             <h4 className="text-lg font-bold text-cyan-400">Detection Details</h4>
             <button onClick={onClose} className="p-1 text-gray-400 hover:text-white">
@@ -58,7 +63,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ detection, onClose, isLoading }) 
         <div className="mt-4 font-mono text-sm space-y-4">
             <div>
                 <p className="text-xs text-gray-500 uppercase">Location</p>
-                <p className="text-gray-200">{detection.country} &gt; {detection.city}</p>
+                <p className="text-gray-200">{detection.country} > {detection.city}</p>
             </div>
             <div>
                 <p className="text-xs text-gray-500 uppercase">Offending System</p>
@@ -66,11 +71,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ detection, onClose, isLoading }) 
             </div>
             <div>
                 <p className="text-xs text-gray-500 uppercase">Bias Description</p>
-                <p className="text-gray-300 whitespace-pre-wrap">{detection.description}</p>
+                <p className="text-gray-300 whitespace-pre-wrap break-words">{detection.description}</p>
             </div>
             <div className="mt-6 pt-4 border-t border-gray-700">
                 <p className="text-xs text-yellow-400 uppercase flex items-center gap-2"><GavelIcon className="w-4 h-4"/>Recommended Legal Action</p>
-                <p className="text-gray-300 whitespace-pre-wrap">{detection.legalAction}</p>
+                <p className="text-gray-300 whitespace-pre-wrap break-words">{detection.legalAction}</p>
             </div>
         </div>
 
@@ -81,9 +86,30 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ detection, onClose, isLoading }) 
                     {isLoading && !detection.analysis ? (
                         <InfoPanelAnalysisSkeleton />
                     ) : (
-                        <p className="text-gray-300 text-sm whitespace-pre-wrap">{detection.analysis || 'Analysis pending...'}</p>
+                        <p className="text-gray-300 text-sm whitespace-pre-wrap break-words">{detection.analysis || 'Analysis pending...'}</p>
                     )}
                 </div>
+            </div>
+            <div className="space-y-2">
+                {detection.status === 'Detected' && (
+                    <button
+                        onClick={() => onAnalyzeAnomaly(detection)}
+                        disabled={isLoading}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+                    >
+                        <BeakerIcon className="w-4 h-4" />
+                        {isLoading ? 'Analyzing...' : 'Analyze Anomaly'}
+                    </button>
+                )}
+                <button
+                    onClick={() => onRevealConstellation(detection)}
+                    disabled={isConstellationLoading || isLoading || detection.status === 'Detected'}
+                    title={detection.status === 'Detected' ? 'Analyze anomaly first to reveal connections' : 'Find related bias incidents'}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+                >
+                    <ShareIcon className="w-4 h-4" />
+                    {isConstellationLoading ? 'Analyzing...' : 'Reveal Constellation'}
+                </button>
             </div>
         </div>
     </div>
@@ -96,12 +122,13 @@ interface InteractiveBiasMapProps {
     selectedAnomaly: Anomaly | null;
     setSelectedAnomaly: (anomaly: Anomaly | null) => void;
     isLoading: boolean;
+    onRevealConstellation: (anomaly: Anomaly) => void;
+    isConstellationLoading: boolean;
+    relatedAnomalyIds: number[];
+    constellationReasoning: string;
 }
 
-const getSeverityStyles = (severity?: AnomalySeverity, isSelected?: boolean) => {
-    if (isSelected) {
-        return 'fill-yellow-400 stroke-yellow-300';
-    }
+const getSeverityStyles = (severity?: AnomalySeverity) => {
     switch (severity) {
         case 'Critical': return 'fill-red-600 stroke-red-400 detection-point-critical';
         case 'High': return 'fill-orange-500 stroke-orange-400 detection-point-high';
@@ -118,31 +145,66 @@ export const InteractiveBiasMap: React.FC<InteractiveBiasMapProps> = ({
     selectedAnomaly,
     setSelectedAnomaly,
     isLoading,
+    onRevealConstellation,
+    isConstellationLoading,
+    relatedAnomalyIds,
+    constellationReasoning,
 }) => {
     return (
         <div 
-            className={`relative w-full h-full bg-black/30 rounded-lg overflow-hidden ${isLoading ? 'cursor-wait' : ''}`}
+            className={`relative w-full h-full bg-black/30 rounded-lg overflow-hidden ${isLoading || isConstellationLoading ? 'cursor-wait' : ''}`}
             style={{
                 backgroundImage: `radial-gradient(circle at center, rgba(6, 182, 212, ${globalAwareness / 400}) ${globalAwareness / 2}%, transparent ${globalAwareness * 1.5}%)`,
                 transition: 'background-image 0.5s ease-out'
             }}
         >
-            <svg viewBox="0 0 1200 600" className="w-full h-full">
-                <WorldMap />
-                {anomalies.map(anomaly => (
-                    <circle
-                        key={anomaly.id}
-                        cx={anomaly.x}
-                        cy={anomaly.y}
-                        r="5"
-                        strokeWidth="1.5"
-                        className={`detection-point ${getSeverityStyles(anomaly.severity, selectedAnomaly?.id === anomaly.id)} ${isLoading ? 'disabled' : ''}`}
-                        onClick={() => !isLoading && onAnalyzeAnomaly(anomaly)}
-                    >
-                      <title>{anomaly.country}: {anomaly.targetSystem}</title>
-                    </circle>
-                ))}
-            </svg>
+            {constellationReasoning && (
+                <div className="absolute top-2 left-2 max-w-md bg-gray-900/70 backdrop-blur-sm p-2 rounded-md text-xs text-gray-300 z-10 animate-fade-in-right">
+                    <p><strong className="text-purple-400 font-semibold">Systemic Link:</strong> {constellationReasoning}</p>
+                </div>
+            )}
+            <div className="w-full h-full overflow-x-auto flex justify-center items-center">
+                <svg viewBox="0 0 1200 600" className="h-full w-auto flex-shrink-0">
+                    <WorldMap />
+                    {/* Constellation Lines */}
+                    {selectedAnomaly && relatedAnomalyIds.length > 0 && relatedAnomalyIds.map(relatedId => {
+                        const relatedAnomaly = anomalies.find(a => a.id === relatedId);
+                        if (!relatedAnomaly) return null;
+                        return (
+                            <line
+                                key={`line-${relatedId}`}
+                                x1={selectedAnomaly.x}
+                                y1={selectedAnomaly.y}
+                                x2={relatedAnomaly.x}
+                                y2={relatedAnomaly.y}
+                                className="constellation-line-highlight"
+                            />
+                        );
+                    })}
+
+                    {anomalies.map(anomaly => {
+                        const isSelected = selectedAnomaly?.id === anomaly.id;
+                        const isRelated = relatedAnomalyIds.includes(anomaly.id);
+                        return (
+                            <circle
+                                key={anomaly.id}
+                                cx={anomaly.x}
+                                cy={anomaly.y}
+                                r={isSelected || isRelated ? 7 : 5}
+                                strokeWidth={isSelected || isRelated ? 2 : 1.5}
+                                className={`detection-point transition-all duration-300 ${
+                                    isSelected ? 'fill-yellow-400 stroke-yellow-200' :
+                                    isRelated ? 'fill-purple-400 stroke-purple-200 detection-point-high' :
+                                    getSeverityStyles(anomaly.severity)
+                                } ${isLoading || isConstellationLoading ? 'disabled' : ''}`}
+                                onClick={() => !(isLoading || isConstellationLoading) && setSelectedAnomaly(anomaly)}
+                            >
+                              <title>{anomaly.country}: {anomaly.targetSystem}</title>
+                            </circle>
+                        );
+                    })}
+                </svg>
+            </div>
             <div className="absolute bottom-2 left-2 bg-gray-900/50 p-2 rounded-md text-xs text-gray-400">
                 Click a hotspot to begin prosecution proceedings.
             </div>
@@ -151,6 +213,9 @@ export const InteractiveBiasMap: React.FC<InteractiveBiasMapProps> = ({
                     detection={selectedAnomaly} 
                     onClose={() => setSelectedAnomaly(null)} 
                     isLoading={isLoading}
+                    onRevealConstellation={onRevealConstellation}
+                    isConstellationLoading={isConstellationLoading}
+                    onAnalyzeAnomaly={onAnalyzeAnomaly}
                 />
             )}
         </div>

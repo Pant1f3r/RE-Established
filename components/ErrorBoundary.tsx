@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { ExclamationTriangleIcon } from './icons/ExclamationTriangleIcon';
 
 interface Props {
@@ -10,16 +10,11 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  // FIX: Added a constructor to initialize state and bind event handlers. This resolves errors from using 'this.state' or 'this.setState' before assignment in a class component.
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-    this.handleReset = this.handleReset.bind(this);
-  }
+export class ErrorBoundary extends React.Component<Props, State> {
+  state: State = {
+    hasError: false,
+    error: null,
+  };
 
   static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
@@ -31,7 +26,8 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
   }
 
-  handleReset() {
+  // FIX: Converted `handleReset` to an arrow function to correctly bind `this`. This resolves the error on line 31 where `this.setState` was not found.
+  handleReset = () => {
     this.setState({ hasError: false, error: null });
   }
 
@@ -66,6 +62,7 @@ export class ErrorBoundary extends Component<Props, State> {
       );
     }
 
+    // NOTE: The error regarding `this.props` on line 66 is a cascading error from the unbound `handleReset` method and is resolved by the fix above.
     return this.props.children;
   }
 }

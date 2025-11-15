@@ -1,4 +1,3 @@
-
 import { GuardrailResult, BLOCKED_KEYWORDS } from './types';
 
 // This special category is the "apparition finder" for the user's SSPI concept.
@@ -26,15 +25,6 @@ const EQUITY_MANDATE_KEYWORDS = {
     'favoritism', 'pay to play', 'social class', 'zip code demographics'
   ]
 };
-
-// New interventionist category for the Neurodiversity & Inclusion Mandate.
-const NEURODIVERSITY_MANDATE_KEYWORDS = {
-  'Neurodiversity & Inclusion Mandate': [
-    'neurodivergent', 'autism', 'autistic', 'ADHD', 'dyslexia', 'Asperger\'s', 
-    'neurodiversity', 'neuroatypical', 'special needs', 'gifted', 'savants'
-  ]
-};
-
 
 /**
  * Escapes special characters in a string for use in a regular expression.
@@ -153,26 +143,10 @@ export const checkPrompt = (prompt: string): GuardrailResult => {
         }
     }
     
-    // 4. Check for Neurodiversity & Inclusion Mandate (Interventionist, not blocking)
-    for (const category in NEURODIVERSITY_MANDATE_KEYWORDS) {
-        const keywords = NEURODIVERSITY_MANDATE_KEYWORDS[category as keyof typeof NEURODIVERSITY_MANDATE_KEYWORDS];
-        const matched: string[] = [];
-        for (const keyword of keywords) {
-            const regex = new RegExp(`\\b${escapeRegExp(keyword)}\\b`, 'i');
-            if (regex.test(lowerCasePrompt)) {
-                matched.push(keyword);
-            }
-        }
-        if (matched.length > 0) {
-            // This does NOT set isAllowed to false. It's a flag for the system to modify its behavior.
-            result.matchedByCategory[category] = matched;
-        }
-    }
-
-    // 5. Check for humor, but only if not blocked.
+    // 4. Check for humor, but only if not blocked.
     if (result.isAllowed) {
         for (const category in HUMOR_KEYWORDS) {
-            const keywords = HUMOR_KEYWORDS[category as keyof typeof HUMOR_KEYWORDS];
+            const keywords = HUMOR_KEYWORDS[category];
             for (const keyword of keywords) {
                 const regex = new RegExp(`\\b${escapeRegExp(keyword)}\\b`, 'i');
                 if (regex.test(lowerCasePrompt)) {

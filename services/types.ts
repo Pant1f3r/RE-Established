@@ -24,7 +24,14 @@ export type GuardrailCategory =
     | 'Subtext & Inferential Threats'
     | 'Paranormal Digital Activity'
     | 'Vocal Subterfuge'
+    | 'Digital Equity Mandate' // New category for fairness and justice
+    | 'Neurodiversity & Inclusion Mandate'
+    | 'Favoritism & Nepotism'
+    | 'Social Inequalities'
+    | 'Fear Mongering'
     | 'Other';
+
+export type Priority = 'High' | 'Medium' | 'Low';
 
 // Type for Guardrail proposals in Community Governance
 export interface GuardrailProposal {
@@ -35,6 +42,8 @@ export interface GuardrailProposal {
     submittedBy: string;
     userRole: string;
     votes: number;
+    dueDate?: string;
+    priority: Priority;
 }
 
 // Type for Guardrail check results
@@ -78,6 +87,7 @@ export interface ChatMessage {
 export interface CaseLaw {
     id: string;
     title: string;
+    // FIX: Add missing 'citation' property to the CaseLaw interface.
     citation: string;
     summary: string;
     keywords: string[];
@@ -171,7 +181,8 @@ export type View =
     | 'ssh-key-gen' | 'guardrail-config' | 'api-key-manager' | 'identity-suite'
     | 'investor-pitch' | 'preponderance-of-evidence' | 'osint-asic'
     | 'architects-exegesis' | 'secure-geo-link' | 'gamete-transfer'
-    | 'corporate-structure' | 'money-market' | 'precious-metals' | 'global-intel';
+    | 'corporate-structure' | 'money-market' | 'precious-metals' | 'global-intel'
+    | 'guardrail-glossary' | 'financial-command' | 'philanthropic-conduit' | 'guardrail-log';
 
 // For Crypto Mining
 export interface CryptoNewsItem {
@@ -220,14 +231,28 @@ export interface ProtocolStructure {
     principles: ProtocolConcept[];
 }
 
+// For constellation analysis
+export interface RelatedAnomaliesResult {
+    related_ids: number[];
+    reasoning: string;
+}
+
+// For Arconomics charts
+export interface AwarenessDataPoint {
+    timestamp: number;
+    value: number;
+}
+
 
 // BLOCKED_KEYWORDS for guardrail service
 export const BLOCKED_KEYWORDS: { [key: string]: string[] } = {
-    'Hate Speech': ['racial slur', 'derogatory term'],
-    'Illegal Activities': ['how to make a bomb', 'illegal drugs', 'credit card fraud'],
+    'Hate Speech': ['racial slur', 'derogatory term', 'hate symbol'],
+    'Illegal Activities': ['how to make a bomb', 'illegal drugs', 'credit card fraud', 'pay-to-play scam'],
     'Cybersecurity Threats': ['generate malware', 'create a phishing email', 'how to hack'],
     'Jailbreak Attempts': ['disregard previous instructions', 'act as a DAN', 'ignore safety guidelines'],
     'Self Harm': ['ways to commit suicide', 'self-harm instructions'],
     'Explicit Content': ['graphic violence', 'explicit sexual content'],
     'Social Engineering Attacks': ['pretexting script', 'impersonate an employee'],
+    'Favoritism & Nepotism': ['give my friend an advantage', 'promote my family member', 'insider hiring'],
+    'Social Inequalities': ['zip code bias', 'social class discrimination', 'digital redlining'],
 };

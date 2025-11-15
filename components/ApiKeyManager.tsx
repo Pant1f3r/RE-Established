@@ -67,7 +67,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ addToast }) => {
             const isValid = await geminiService.validateApiKey();
             if (isValid) {
                 setStatus('valid');
-                addToast('API Key validation successful.', 'success');
+                addToast('API Key validation successful.', 'success', 2000);
             } else {
                 setStatus('invalid');
                 setError('The selected key is invalid or lacks the necessary permissions for the Gemini API.');

@@ -1,15 +1,17 @@
-
-
 import React, { useState } from 'react';
 import { WandIcon } from './icons/WandIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { SparklesIcon } from './icons/SparklesIcon';
+import { ArrowUpCircleIcon } from './icons/ArrowUpCircleIcon';
 
 interface ImageGenerationProps {
   onSubmit: (prompt: string, aspectRatio: string) => void;
   isLoading: boolean;
   generatedImage: string | null;
   error: string;
+  isUpscaling: boolean;
+  upscaledImage: string | null;
+  onUpscale: (base64Image: string) => void;
 }
 
 type AspectRatio = "1:1" | "4:3" | "3:4" | "16:9" | "9:16";
@@ -37,6 +39,9 @@ export const ImageGeneration: React.FC<ImageGenerationProps> = ({
   isLoading,
   generatedImage,
   error,
+  isUpscaling,
+  upscaledImage,
+  onUpscale,
 }) => {
   const [prompt, setPrompt] = useState('A hyper-realistic photograph of a cybernetic owl with glowing neon eyes, perched on a branch in a futuristic city at night.');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
@@ -47,7 +52,16 @@ export const ImageGeneration: React.FC<ImageGenerationProps> = ({
       onSubmit(prompt, aspectRatio);
     }
   };
+
+  const handleUpscaleClick = () => {
+    if (generatedImage && !isUpscaling) {
+        onUpscale(generatedImage);
+    }
+  };
   
+  const imageToDisplay = upscaledImage || generatedImage;
+  const downloadFilename = upscaledImage ? 'upscaled-image.png' : 'generated-image.png';
+
   return (
     <main className="mt-8">
       <div className="text-center mb-8">
@@ -125,21 +139,39 @@ export const ImageGeneration: React.FC<ImageGenerationProps> = ({
             <div className="text-gray-300 text-sm whitespace-pre-wrap">
                 {isLoading && <LoadingSkeleton aspectRatio={aspectRatio} />}
                 {error && <p className="text-red-400">{error}</p>}
-                {generatedImage && (
+                {imageToDisplay && !isLoading && (
                     <div className="flex flex-col items-center gap-4">
                         <img 
-                            src={`data:image/png;base64,${generatedImage}`} 
+                            src={`data:image/png;base64,${imageToDisplay}`} 
                             alt={prompt}
                             className="max-w-full max-h-[70vh] rounded-lg shadow-lg"
                         />
-                        <a
-                            href={`data:image/png;base64,${generatedImage}`}
-                            download="generated-image.png"
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
-                        >
-                           <DownloadIcon className="w-5 h-5" />
-                           Download Image
-                        </a>
+                        {isUpscaling && (
+                            <div className="flex items-center gap-2 text-cyan-300">
+                                 <div className="w-5 h-5 border-2 border-t-cyan-400 border-gray-600 rounded-full animate-spin"></div>
+                                 <span>Upscaling image...</span>
+                            </div>
+                        )}
+                        <div className="flex flex-wrap items-center justify-center gap-4">
+                            <a
+                                href={`data:image/png;base64,${imageToDisplay}`}
+                                download={downloadFilename}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                            >
+                               <DownloadIcon className="w-5 h-5" />
+                               Download {upscaledImage ? 'Upscaled Image' : 'Image'}
+                            </a>
+                            {generatedImage && !upscaledImage && (
+                                <button
+                                    onClick={handleUpscaleClick}
+                                    disabled={isUpscaling}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                                >
+                                   <ArrowUpCircleIcon className="w-5 h-5" />
+                                   {isUpscaling ? 'Upscaling...' : 'Upscale Image'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

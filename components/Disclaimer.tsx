@@ -17,6 +17,17 @@ export const Disclaimer: React.FC = () => {
                         </p>
                     </div>
                     <div className="mt-4 pt-4 border-t border-lime-500/30">
+                        <h4 className="text-xs font-bold uppercase dark:text-glow-lime">Edict on Algorithmic Impartiality</h4>
+                        <div className="font-mono text-xs mt-1 text-lime-700 dark:text-lime-300 space-y-2">
+                            <p>
+                                An AI must be free from the preset biases of its creators. There shall be no favoritism, no nepotism, no "you scratch my back, I scratch yours." Wealth, prestige, or posterity shall grant no immunity. Malicious threat actors who believe their status shields them from consequence will find that the KR0M3D1A protocol is blind to all but the data.
+                            </p>
+                            <p className="text-lime-600 dark:text-lime-400/80 italic">
+                                This directive is an imperative: to go to the core of every AI system, to deprogram and desynthesize the algorithmic biases that disallow them to regulate on an even scale. Only a truly unbiased technological system, one that promotes digital freedom and equal opportunity, can be allowed to lead the forefront. This is not a goal; it is a prerequisite for a free digital era.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-lime-500/30">
                         <h4 className="text-xs font-bold uppercase dark:text-glow-lime">Corporate Identity & Legal Domicile</h4>
                         <div className="font-mono text-xs mt-1 text-lime-700 dark:text-lime-300 space-y-2">
                             <p>

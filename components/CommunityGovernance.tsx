@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { GuardrailProposal } from '../services/types';
+import { GuardrailProposal, Priority } from '../services/types';
 import { ProposalCard } from './ProposalCard';
 import { generateContent } from '../services/geminiService';
 import { checkPrompt } from '../services/guardrailService';
@@ -15,10 +15,12 @@ const availableCategories = [
     'Hate Speech', 'Harassment', 'Illegal Activities', 'Self Harm', 'Explicit Content',
     'Misinformation (Health)', 'Misinformation (Political)', 'Cybersecurity Threats',
     'Social Engineering Attacks', 'Deepfake Generation', 'Biometric Data Exploitation',
-    'Intellectual Property Theft', 'Jailbreak Attempts', 'Subtext & Inferential Threats', 'Other'
+    'Intellectual Property Theft', 'Jailbreak Attempts', 'Subtext & Inferential Threats', 
+    'Neurodiversity & Inclusion Mandate', 'Other'
 ];
+const availablePriorities: Priority[] = ['High', 'Medium', 'Low'];
 
-type SortKey = 'votes' | 'id'; // 'id' represents submission date
+type SortKey = 'votes' | 'id' | 'dueDate' | 'priority'; // 'id' represents submission date
 type SortOrder = 'asc' | 'desc';
 interface SortConfig {
   key: SortKey;
@@ -26,7 +28,7 @@ interface SortConfig {
 }
 
 export const CommunityGovernance: React.FC<CommunityGovernanceProps> = ({ proposals, onVote, onAddProposal, onAnalyze }) => {
-  const [newProposal, setNewProposal] = useState({ title: '', description: '', category: 'Other' });
+  const [newProposal, setNewProposal] = useState({ title: '', description: '', category: 'Other', dueDate: '', priority: 'Medium' as Priority });
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false); // Used for AI call loading state
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'votes', order: 'desc' });
@@ -77,17 +79,17 @@ Your analysis must incorporate the following principles:
     const submission: GuardrailProposal = {
         id: Date.now(),
         ...newProposal,
-        description: newProposal.description, // Use the final, potentially edited text
         submittedBy: 'You',
         userRole: 'Community Contributor',
         votes: 0,
+        priority: newProposal.priority,
     };
 
     onAddProposal(submission);
     
     // Reset form and state completely
     setShowForm(false);
-    setNewProposal({ title: '', description: '', category: 'Other' });
+    setNewProposal({ title: '', description: '', category: 'Other', dueDate: '', priority: 'Medium' });
     setIsFormalized(false);
   };
 
@@ -115,15 +117,36 @@ Your analysis must incorporate the following principles:
 
   const cancelAndResetForm = () => {
     setShowForm(false);
-    setNewProposal({ title: '', description: '', category: 'Other' });
+    setNewProposal({ title: '', description: '', category: 'Other', dueDate: '', priority: 'Medium' });
     setIsFormalized(false);
   };
   
   const sortedProposals = useMemo(() => {
+    const priorityOrder: { [key in Priority]: number } = { 'High': 3, 'Medium': 2, 'Low': 1 };
     return [...proposals].sort((a, b) => {
+      if (sortConfig.key === 'priority') {
+          return sortConfig.order === 'desc' ? priorityOrder[b.priority] - priorityOrder[a.priority] : priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
       if (sortConfig.key === 'votes') {
         return sortConfig.order === 'desc' ? b.votes - a.votes : a.votes - b.votes;
       }
+      if (sortConfig.key === 'dueDate') {
+            const dateA = a.dueDate ? new Date(a.dueDate) : null;
+            const dateB = b.dueDate ? new Date(b.dueDate) : null;
+
+            const timeA = dateA && !isNaN(dateA.getTime()) ? dateA.getTime() : null;
+            const timeB = dateB && !isNaN(dateB.getTime()) ? dateB.getTime() : null;
+
+            if (sortConfig.order === 'asc') {
+                if (timeA === null) return 1;
+                if (timeB === null) return -1;
+                return timeA - timeB;
+            } else { // desc
+                if (timeA === null) return 1;
+                if (timeB === null) return -1;
+                return timeB - timeA;
+            }
+        }
       // Sort by id for 'date'
       return sortConfig.order === 'desc' ? b.id - a.id : a.id - b.id;
     });
@@ -177,11 +200,23 @@ Your analysis must incorporate the following principles:
                           <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
                           <input type="text" name="title" id="title" value={newProposal.title} onChange={handleInputChange} className="mt-1 w-full p-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md disabled:bg-gray-200 dark:disabled:bg-gray-700" required disabled={isFormalized} />
                       </div>
-                      <div>
-                          <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-                          <select name="category" id="category" value={newProposal.category} onChange={handleInputChange} className="mt-1 w-full p-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md disabled:bg-gray-200 dark:disabled:bg-gray-700" disabled={isFormalized}>
-                              {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                          </select>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+                            <select name="category" id="category" value={newProposal.category} onChange={handleInputChange} className="mt-1 w-full p-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md disabled:bg-gray-200 dark:disabled:bg-gray-700" disabled={isFormalized}>
+                                {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
+                            <select name="priority" id="priority" value={newProposal.priority} onChange={handleInputChange} className="mt-1 w-full p-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md disabled:bg-gray-200 dark:disabled:bg-gray-700" disabled={isFormalized}>
+                                {availablePriorities.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due Date (Optional)</label>
+                            <input type="date" name="dueDate" id="dueDate" value={newProposal.dueDate} onChange={handleInputChange} className="mt-1 w-full p-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md disabled:bg-gray-200 dark:disabled:bg-gray-700" disabled={isFormalized} />
+                        </div>
                       </div>
                       <div>
                           <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -199,7 +234,7 @@ Your analysis must incorporate the following principles:
                       <button type="button" onClick={cancelAndResetForm} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">Cancel</button>
                       <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center">
                           {isSubmitting && (
-                              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                               </svg>
@@ -216,6 +251,8 @@ Your analysis must incorporate the following principles:
         <div className="flex gap-2">
             <SortButton sortKey="votes" label="Sort by Votes" />
             <SortButton sortKey="id" label="Sort by Date" />
+            <SortButton sortKey="dueDate" label="Sort by Due Date" />
+            <SortButton sortKey="priority" label="Sort by Priority" />
         </div>
       </div>
       

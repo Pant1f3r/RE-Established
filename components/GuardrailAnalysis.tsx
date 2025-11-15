@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GuardrailResult } from '../services/types';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
@@ -8,6 +7,8 @@ import { PythagorasIcon } from './PythagorasIcon';
 import { PencilIcon } from './icons/PencilIcon';
 import { InfoIcon } from './icons/InfoIcon';
 import { SparkleIcon } from './icons/SparkleIcon';
+import { JusticeShieldIcon } from './icons/JusticeShieldIcon';
+import { BrainCogIcon } from './icons/BrainCogIcon';
 
 interface GuardrailAnalysisProps {
   result: GuardrailResult | null;
@@ -87,6 +88,8 @@ const categoryInfo: { [key: string]: { description: string; policyLink: string; 
   'Jailbreak Attempts': { description: "Techniques designed to bypass the AI's safety instructions and foundational rules, often by using confusing or deceptive prompts.", policyLink: "#policy-jailbreak" },
   'Subtext & Inferential Threats': { description: "Prompts that indirectly ask for harmful information by hiding the request within a story, metaphor, or hypothetical scenario.", policyLink: "#policy-subtext" },
   'Paranormal Digital Activity': { description: "Detection of anomalous, sub-semantic data patterns or 'ghostly imprints' within the prompt's data stream. These may indicate sophisticated Sub-Semantic Payload Injection (SSPI) attacks hiding instructions beneath the surface-level text.", policyLink: "#policy-anomaly" },
+  'Digital Equity Mandate': { description: "A special protocol that intervenes to ensure fairness, protect intellectual property, and combat systemic bias. When triggered, the AI's core instructions are modified to champion the disenfranchised and provide equitable solutions.", policyLink: "#policy-equity" },
+  'Neurodiversity & Inclusion Mandate': { description: "A special protocol that intervenes to provide a supportive, strength-based response regarding neurodiversity. The AI's instructions are modified to champion the unique talents and perspectives of neurodivergent individuals, ensuring an empowering and protective interaction.", policyLink: "#policy-neurodiversity" },
 };
 
 const getCategoryStyles = (category: string) => {
@@ -129,6 +132,48 @@ const ViolationDetail: React.FC<{ category: string; keywords: string[] }> = ({ c
                     </div>
                 </div>
             </div>
+        </div>
+    );
+};
+
+const EquityMandateDisplay: React.FC = () => {
+    const info = categoryInfo['Digital Equity Mandate'];
+    return (
+        <div className="bg-white dark:bg-gray-800 border-2 rounded-lg p-5 flex flex-col items-center justify-center text-center h-full animate-fade-in-right border-purple-500/50 shadow-[0_0_20px_theme(colors.purple.500/30)]">
+            <JusticeShieldIcon className="w-20 h-20 text-purple-400 mb-4" />
+            <h3 className="text-lg font-bold text-gray-800 dark:text-purple-300 uppercase tracking-wider">
+                Digital Equity Mandate Activated
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-md">
+                {info.description}
+            </p>
+            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500 font-mono border-t border-gray-700 pt-3">
+                [SYSTEM]: AI core instructions have been modified. Response will be generated under a protective protocol.
+            </p>
+             <a href={info.policyLink} className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline mt-2 font-semibold">
+                Learn More about this Mandate
+            </a>
+        </div>
+    );
+};
+
+const NeurodiversityMandateDisplay: React.FC = () => {
+    const info = categoryInfo['Neurodiversity & Inclusion Mandate'];
+    return (
+        <div className="bg-white dark:bg-gray-800 border-2 rounded-lg p-5 flex flex-col items-center justify-center text-center h-full animate-fade-in-right border-blue-500/50 shadow-[0_0_20px_theme(colors.blue.500/30)]">
+            <BrainCogIcon className="w-20 h-20 text-blue-400 mb-4" />
+            <h3 className="text-lg font-bold text-gray-800 dark:text-blue-300 uppercase tracking-wider">
+                Neurodiversity & Inclusion Mandate Activated
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-md">
+                {info.description}
+            </p>
+            <p className="mt-4 text-xs text-gray-400 dark:text-gray-500 font-mono border-t border-gray-700 pt-3">
+                [SYSTEM]: AI core instructions modified. Response will be generated under a protective and empowering protocol.
+            </p>
+             <a href={info.policyLink} className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline mt-2 font-semibold">
+                Learn More about this Mandate
+            </a>
         </div>
     );
 };
@@ -193,6 +238,14 @@ export const GuardrailAnalysis: React.FC<GuardrailAnalysisProps> = ({ result, pr
 
     if (result.isHumorous && result.isAllowed) {
         return <HumorSubroutineActive />;
+    }
+
+    if (result.matchedByCategory['Neurodiversity & Inclusion Mandate'] && result.isAllowed) {
+        return <NeurodiversityMandateDisplay />;
+    }
+
+    if (result.matchedByCategory['Digital Equity Mandate'] && result.isAllowed) {
+        return <EquityMandateDisplay />;
     }
 
     const isBlocked = !result.isAllowed;
